@@ -1,4 +1,4 @@
-package byteslice
+package cbstruct
 
 import (
 	"encoding/binary"
@@ -13,142 +13,105 @@ var (
 	DidNotReadEnoughData                = errors.New("did not read expected amount of data")
 	NilSerialisedData                   = errors.New("nil serialised data")
 
-	byteSlicePool = &sync.Pool{
+	structPool = &sync.Pool{
 		New: func() interface{} {
 			return New()
 		},
 	}
 )
 
-type Transaction []byte
+type Transaction struct {
+	transactionId         uint64
+	actionEnum            cbtransaction.ActionEnum
+	encodingProviderKey   [8]byte
+	encryptionProviderKey [8]byte
+	data                  []byte
+}
 
 func AcquireTransactionUnserialise(serialised []byte) *Transaction {
-	transaction := byteSlicePool.Get().(*Transaction)
+	transaction := structPool.Get().(*Transaction)
 	transaction.Unserialise(serialised)
 	return transaction
 }
 
 func AcquireTransactionUnserialiseReader(reader io.Reader) (*Transaction, error) {
-	transaction := byteSlicePool.Get().(*Transaction)
+	transaction := structPool.Get().(*Transaction)
 	e := transaction.UnserialiseReader(reader)
 	return transaction, e
 }
 
 func ReleaseTransaction(t *Transaction) {
-	byteSlicePool.Put(t)
+	structPool.Put(t)
 }
 
 func New() *Transaction {
-	transaction := make(Transaction, 25)
-	return &transaction
+	return &Transaction{}
 }
 
 func NewFromReader(serialised io.Reader) (*Transaction, error) {
-	transaction := make(Transaction, 25)
+	transaction := &Transaction{}
 	e := transaction.UnserialiseReader(serialised)
 	if e != nil {
 		return nil, e
 	}
 
-	return &transaction, nil
+	return transaction, nil
 }
 
 func (b *Transaction) SetTransactionId(transactionId uint64) {
-	binary.LittleEndian.PutUint64(*b, transactionId)
+	b.transactionId = transactionId
 }
 
 func (b *Transaction) GetTransactionId() uint64 {
-	return binary.LittleEndian.Uint64(*b)
+	return b.transactionId
 }
 
 func (b *Transaction) SetActionEnum(action cbtransaction.ActionEnum) {
-	transaction := *b
-	transaction[8] = byte(action)
-	*b = transaction
+	b.actionEnum = action
 }
 
 func (b *Transaction) GetActionEnum() cbtransaction.ActionEnum {
-	transaction := *b
-	return cbtransaction.ActionEnum(transaction[8])
+	return b.actionEnum
 }
 
 func (b *Transaction) SetEncodingProviderKey(key [8]byte) {
-	transaction := *b
-	prefix := append(
-		transaction[:9],
-		key[0],
-		key[1],
-		key[2],
-		key[3],
-		key[4],
-		key[5],
-		key[6],
-		key[7],
-	)
-	transaction = append(prefix, transaction[17:]...)
-	*b = transaction
+	b.encodingProviderKey = key
 }
 
 func (b *Transaction) GetEncodingProviderKey() [8]byte {
-	transaction := *b
-	return [8]byte{
-		transaction[9:17][0],
-		transaction[9:17][1],
-		transaction[9:17][2],
-		transaction[9:17][3],
-		transaction[9:17][4],
-		transaction[9:17][5],
-		transaction[9:17][6],
-		transaction[9:17][7],
-	}
+	return b.encodingProviderKey
 }
 
 func (b *Transaction) SetEncryptionProviderKey(key [8]byte) {
-	transaction := *b
-	prefix := append(
-		transaction[:17],
-		key[0],
-		key[1],
-		key[2],
-		key[3],
-		key[4],
-		key[5],
-		key[6],
-		key[7],
-	)
-	transaction = append(prefix, transaction[25:]...)
-	*b = transaction
+	b.encryptionProviderKey = key
 }
 
 func (b *Transaction) GetEncryptionProviderKey() [8]byte {
-	transaction := *b
-	return [8]byte{
-		transaction[17:25][0],
-		transaction[17:25][1],
-		transaction[17:25][2],
-		transaction[17:25][3],
-		transaction[17:25][4],
-		transaction[17:25][5],
-		transaction[17:25][6],
-		transaction[17:25][7],
-	}
+	return b.encryptionProviderKey
 }
 
 func (b *Transaction) SetData(data []byte) {
-	*b = append(*b, data...)
+	b.data = data
 }
 
 func (b *Transaction) GetData() []byte {
-	transaction := *b
-	return transaction[25:]
+	return b.data
 }
 
 func (b *Transaction) GetLength() uint64 {
-	return uint64(len(*b))
+	return 8+1+8+8+uint64(len(b.data))
 }
 
 func (b *Transaction) Unserialise(transaction []byte) {
-	*b = transaction
+	b.transactionId = binary.LittleEndian.Uint64(transaction[:8])
+	b.actionEnum = cbtransaction.ActionEnum(transaction[8])
+	for i := 9; i < 17; i++ {
+		b.encodingProviderKey[i-9] = transaction[i]
+	}
+	for i := 17; i < 25; i++ {
+		b.encryptionProviderKey[i-17] = transaction[i]
+	}
+	b.data = transaction[25:]
 }
 
 func (b *Transaction) UnserialiseReader(reader io.Reader) error {
@@ -166,10 +129,8 @@ func (b *Transaction) UnserialiseReader(reader io.Reader) error {
 			return DidNotReadEnoughDataTransactionSize
 		} else {
 			transactionSize := int(binary.LittleEndian.Uint64(transactionSizeBytes))
-			if len(*b) != transactionSize {
-				*b = make(Transaction, transactionSize)
-			}
-			n, e := reader.Read(*b)
+			transactionBytes := make([]byte, transactionSize)
+			n, e := reader.Read(transactionBytes)
 			if e != nil {
 				if errors.Is(e, io.EOF) && n != transactionSize {
 					return DidNotReadEnoughData
@@ -180,6 +141,7 @@ func (b *Transaction) UnserialiseReader(reader io.Reader) error {
 			if n < transactionSize {
 				return DidNotReadEnoughData
 			}
+			b.Unserialise(transactionBytes)
 		}
 	} else {
 		return NilSerialisedData
@@ -191,9 +153,21 @@ func (b *Transaction) UnserialiseReader(reader io.Reader) error {
 func (b *Transaction) Serialise() []byte {
 	length := make([]byte, 8)
 	binary.LittleEndian.PutUint64(length, b.GetLength())
-	return append(length, *b...)
+
+	transactionIdBytes := make([]byte, 8)
+	binary.LittleEndian.PutUint64(transactionIdBytes, b.transactionId)
+	encodingProviderKeyBytes := make([]byte, 8)
+	for i := 0; i < 8; i++ {
+		encodingProviderKeyBytes[i] = b.encodingProviderKey[i]
+	}
+	encryptionProviderKeyBytes := make([]byte, 8)
+	for i := 0; i < 8; i++ {
+		encryptionProviderKeyBytes[i] = b.encryptionProviderKey[i]
+	}
+
+	return append(length, append(transactionIdBytes, append([]byte{byte(b.actionEnum)}, append(encodingProviderKeyBytes, append(encryptionProviderKeyBytes, b.data...)...)...)...)...)
 }
 
 func (b *Transaction) SerialiseWriter(writer io.Writer) (n int, err error) {
-	return writer.Write(*b)
+	return writer.Write(b.Serialise())
 }

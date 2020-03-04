@@ -1,4 +1,4 @@
-package bytestruct
+package cbslice
 
 import (
 	"bytes"
@@ -10,66 +10,65 @@ import (
 	"os"
 	"reflect"
 	"testing"
-	"unsafe"
 )
 
 func TestNew(t *testing.T) {
-	byteStruct := New()
-	_ = byteStruct
+	slice := New()
+	_ = slice
 }
 
 func TestTransaction_SetTransactionId(t *testing.T) {
-	byteStruct := New()
+	slice := New()
 	transactionId := rand.Uint64()
-	byteStruct.SetTransactionId(transactionId)
+	slice.SetTransactionId(transactionId)
 }
 
 func TestTransaction_GetTransactionId(t *testing.T) {
-	byteStruct := New()
+	slice := New()
 	transactionId := rand.Uint64()
-	byteStruct.SetTransactionId(transactionId)
-	get := byteStruct.GetTransactionId()
+	slice.SetTransactionId(transactionId)
+	get := slice.GetTransactionId()
 	if get != transactionId {
 		t.Errorf("transactionId was incorrect, got: %d, want: %d", get, transactionId)
 	}
 }
 
 func TestTransaction_SetActionEnum(t *testing.T) {
-	byteStruct := New()
-	byteStruct.SetActionEnum(cbtransaction.ActionAdd)
-	byteStruct.SetActionEnum(cbtransaction.ActionRemove)
-	byteStruct.SetActionEnum(cbtransaction.ActionClear)
+	slice := New()
+	slice.SetActionEnum(cbtransaction.ActionAdd)
+	slice.SetActionEnum(cbtransaction.ActionRemove)
+	slice.SetActionEnum(cbtransaction.ActionClear)
 }
 
 func TestTransaction_GetActionEnum(t *testing.T) {
-	byteStruct := New()
-	byteStruct.SetActionEnum(cbtransaction.ActionAdd)
-	get := byteStruct.GetActionEnum()
+	slice := New()
+	slice.SetActionEnum(cbtransaction.ActionAdd)
+	get := slice.GetActionEnum()
 	if get != cbtransaction.ActionAdd {
 		t.Errorf("actionEnum was incorrect, got: %s, want: %s", string(get), string(cbtransaction.ActionAdd))
 	}
-	byteStruct.SetActionEnum(cbtransaction.ActionRemove)
-	get = byteStruct.GetActionEnum()
+	slice.SetActionEnum(cbtransaction.ActionRemove)
+	get = slice.GetActionEnum()
 	if get != cbtransaction.ActionRemove {
 		t.Errorf("actionEnum was incorrect, got: %s, want: %s", string(get), string(cbtransaction.ActionRemove))
 	}
-	byteStruct.SetActionEnum(cbtransaction.ActionClear)
-	get = byteStruct.GetActionEnum()
+	slice.SetActionEnum(cbtransaction.ActionClear)
+	get = slice.GetActionEnum()
 	if get != cbtransaction.ActionClear {
 		t.Errorf("actionEnum was incorrect, got: %s, want: %s", string(get), string(cbtransaction.ActionClear))
 	}
 }
 
 func TestTransaction_SetEncodingProviderKey(t *testing.T) {
-	byteStruct := New()
-	byteStruct.SetEncodingProviderKey([8]byte{'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'})
+	slice := New()
+	slice.SetEncodingProviderKey([8]byte{'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'})
 }
 
 func TestTransaction_GetEncodingProviderKey(t *testing.T) {
-	byteStruct := New()
+	slice := New()
 	byteArray := [8]byte{'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'}
-	byteStruct.SetEncodingProviderKey(byteArray)
-	get := byteStruct.GetEncodingProviderKey()
+	slice.SetEncodingProviderKey(byteArray)
+	get := slice.GetEncodingProviderKey()
 	for key, arrayByte := range byteArray {
 		if get[key] != arrayByte {
 			t.Errorf("encodingProviderKey[%d] was incorrect, got: %s, want: %s", key, string(get[key]), string(arrayByte))
@@ -78,15 +77,15 @@ func TestTransaction_GetEncodingProviderKey(t *testing.T) {
 }
 
 func TestTransaction_SetEncryptionProviderKey(t *testing.T) {
-	byteStruct := New()
-	byteStruct.SetEncryptionProviderKey([8]byte{'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'})
+	slice := New()
+	slice.SetEncryptionProviderKey([8]byte{'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'})
 }
 
 func TestTransaction_GetEncryptionProviderKey(t *testing.T) {
-	byteStruct := New()
+	slice := New()
 	byteArray := [8]byte{'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'}
-	byteStruct.SetEncryptionProviderKey(byteArray)
-	get := byteStruct.GetEncryptionProviderKey()
+	slice.SetEncryptionProviderKey(byteArray)
+	get := slice.GetEncryptionProviderKey()
 	for key, arrayByte := range byteArray {
 		if get[key] != arrayByte {
 			t.Errorf("encryptionProviderKey[%d] was incorrect, got: %s, want: %s", key, string(get[key]), string(arrayByte))
@@ -95,42 +94,42 @@ func TestTransaction_GetEncryptionProviderKey(t *testing.T) {
 }
 
 func TestTransaction_SetData(t *testing.T) {
-	byteStruct := New()
-	byteStruct.SetData([]byte("qwerty"))
+	slice := New()
+	slice.SetData([]byte("qwerty"))
 }
 
 func TestTransaction_GetData(t *testing.T) {
-	byteStruct := New()
+	slice := New()
 	data := []byte("qwerty")
-	byteStruct.SetData(data)
-	get := byteStruct.GetData()
+	slice.SetData(data)
+	get := slice.GetData()
 	if bytes.Compare(data, get) != 0 {
 		t.Errorf("data was incorrect, got: %b, want: %b", get, data)
 	}
 }
 
 func TestTransaction_Serialise(t *testing.T) {
-	byteStruct := New()
-	t.Logf("new           %b %d", byteStruct, unsafe.Sizeof(*byteStruct))
+	slice := New()
+	t.Logf("new           %b %d", slice, len(*slice))
 
 	transactionId := uint64(0)
-	byteStruct.SetTransactionId(transactionId)
-	t.Logf("transactionId %b %d", byteStruct, unsafe.Sizeof(*byteStruct))
+	slice.SetTransactionId(transactionId)
+	t.Logf("transactionId %b %d", slice, len(*slice))
 
-	byteStruct.SetActionEnum(cbtransaction.ActionAdd)
-	t.Logf("action        %b %d", byteStruct, unsafe.Sizeof(*byteStruct))
+	slice.SetActionEnum(cbtransaction.ActionAdd)
+	t.Logf("action        %b %d", slice, len(*slice))
 
 	encodingProviderKey := [8]byte{0, 1, 2, 3, 4, 5, 6, 7}
-	byteStruct.SetEncodingProviderKey(encodingProviderKey)
-	t.Logf("encoding      %b %d", byteStruct, unsafe.Sizeof(*byteStruct))
+	slice.SetEncodingProviderKey(encodingProviderKey)
+	t.Logf("encoding      %b %d", slice, len(*slice))
 
 	encryptionProviderKey := [8]byte{8, 9, 10, 11, 12, 13, 14, 15}
-	byteStruct.SetEncryptionProviderKey(encryptionProviderKey)
-	t.Logf("encryption    %b %d", byteStruct, unsafe.Sizeof(*byteStruct))
+	slice.SetEncryptionProviderKey(encryptionProviderKey)
+	t.Logf("encryption    %b %d", slice, len(*slice))
 
 	data := []byte{16, 17, 18}
-	byteStruct.SetData(data)
-	t.Logf("data          %b %d", byteStruct, unsafe.Sizeof(*byteStruct))
+	slice.SetData(data)
+	t.Logf("data          %b %d", slice, len(*slice))
 
 	expected := []byte{
 		28, 0, 0, 0, 0, 0, 0, 0, //len(transaction)
@@ -141,7 +140,7 @@ func TestTransaction_Serialise(t *testing.T) {
 		16, 17, 18, //data
 	}
 
-	serialised := byteStruct.Serialise()
+	serialised := slice.Serialise()
 	if bytes.Compare(expected, serialised) != 0 {
 		t.Errorf("serialised was incorrect, \ngot : %v, \nwant: %v", serialised, expected)
 	}
@@ -156,12 +155,12 @@ func TestNewFromReader(t *testing.T) {
 		8, 9, 10, 11, 12, 13, 14, 15, //encryptionProviderKey
 		16, 17, //data
 	})
-	byteStruct, e := NewFromReader(reader)
+	slice, e := NewFromReader(reader)
 	if !errors.Is(e, DidNotReadEnoughData) {
 		t.Errorf("e was incorrect, got: nil, want: %s", DidNotReadEnoughData.Error())
 	}
-	if byteStruct != nil {
-		t.Errorf("byteStruct was incorrect, got: %s, want: nil", reflect.TypeOf(byteStruct).String())
+	if slice != nil {
+		t.Errorf("slice was incorrect, got: %s, want: nil", reflect.TypeOf(slice).String())
 	}
 
 	reader = bytes.NewReader([]byte{
@@ -172,47 +171,47 @@ func TestNewFromReader(t *testing.T) {
 		8, 9, 10, 11, 12, 13, 14, 15, //encryptionProviderKey
 		16, 17, 18, //data
 	})
-	byteStruct, e = NewFromReader(reader)
+	slice, e = NewFromReader(reader)
 	if e != nil {
 		t.Errorf("e was incorrect, got: %s, want: nil", e.Error())
 	}
-	if byteStruct == nil {
-		t.Errorf("byteStruct was incorrect, got: nil, want: Transaction")
+	if slice == nil {
+		t.Errorf("slice was incorrect, got: nil, want: Transaction")
 		return
 	}
 
 	expectedTransactionId := uint64(0)
-	getTransactionId := byteStruct.GetTransactionId()
+	getTransactionId := slice.GetTransactionId()
 	if getTransactionId != expectedTransactionId {
 		t.Errorf("getTransactionId was incorrect, got: %d, want: %d", getTransactionId, expectedTransactionId)
 	}
 
 	expectedActionEnum := cbtransaction.ActionAdd
-	getActionEnum := byteStruct.GetActionEnum()
+	getActionEnum := slice.GetActionEnum()
 	if getActionEnum != expectedActionEnum {
 		t.Errorf("getActionEnum was incorrect, got: %s, want: %s", string(getActionEnum), string(expectedActionEnum))
 	}
 
 	expectedEncodingProviderKey := [8]byte{0, 1, 2, 3, 4, 5, 6, 7}
-	getEncodingProviderKey := byteStruct.GetEncodingProviderKey()
+	getEncodingProviderKey := slice.GetEncodingProviderKey()
 	if getEncodingProviderKey != expectedEncodingProviderKey {
 		t.Errorf("getEncodingProviderKey was incorrect, got: %v, want: %v", getEncodingProviderKey, expectedEncodingProviderKey)
 	}
 
 	expectedEncryptionProviderKey := [8]byte{8, 9, 10, 11, 12, 13, 14, 15}
-	getEncryptionProviderKey := byteStruct.GetEncryptionProviderKey()
+	getEncryptionProviderKey := slice.GetEncryptionProviderKey()
 	if getEncryptionProviderKey != expectedEncryptionProviderKey {
 		t.Errorf("getEncryptionProviderKey was incorrect, got: %v, want: %v", getEncryptionProviderKey, expectedEncryptionProviderKey)
 	}
 
 	expectedLength := uint64(28)
-	getLength := byteStruct.GetLength()
+	getLength := slice.GetLength()
 	if getLength != expectedLength {
 		t.Errorf("getLength was incorrect, got: %d, want: %d", getLength, expectedLength)
 	}
 
 	expectedData := []byte{16, 17, 18}
-	getData := byteStruct.GetData()
+	getData := slice.GetData()
 	if bytes.Compare(getData, expectedData) != 0 {
 		t.Errorf("getData was incorrect, got: %v, want: %v", getData, expectedData)
 	}
@@ -242,7 +241,7 @@ func BenchmarkTransaction_Serialise1KB(b *testing.B) {
 	transactionBytes = append(size, append(transactionBytes, data...)...)
 
 	reader := bytes.NewReader(transactionBytes)
-	byteStruct, e := NewFromReader(reader)
+	slice, e := NewFromReader(reader)
 	if e != nil {
 		b.Error(e)
 		return
@@ -250,7 +249,7 @@ func BenchmarkTransaction_Serialise1KB(b *testing.B) {
 
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-		_ = byteStruct.Serialise()
+		_ = slice.Serialise()
 	}
 }
 
