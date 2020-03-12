@@ -5,12 +5,12 @@ import (
 	"io"
 )
 
-type Encoding struct {
+var Key = [8]byte{'m', 's', 'g', 'p', 'a', 'c', 'k', 0}
 
+type Encoding struct {
 }
 
 type Config struct {
-
 }
 
 func New(config Config) *Encoding {
@@ -18,7 +18,7 @@ func New(config Config) *Encoding {
 }
 
 func (b *Encoding) GetKey() [8]byte {
-	return [8]byte{'m', 's', 'g', 'p', 'a', 'c', 'k', 0}
+	return Key
 }
 
 func (b *Encoding) Encode(data interface{}) ([]byte, error) {
@@ -36,6 +36,3 @@ func (b *Encoding) Decode(encoded []byte, out interface{}) error {
 func (b *Encoding) DecodeReader(reader io.Reader, out interface{}) error {
 	return msgpack.NewDecoder(reader).Decode(out)
 }
-
-
-

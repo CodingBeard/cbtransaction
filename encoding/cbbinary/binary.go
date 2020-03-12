@@ -6,6 +6,9 @@ import (
 	"io"
 )
 
+var KeyLittleEndian = [8]byte{'b', 'i', 'n', 'a', 'r', 'y', 'l', 0}
+var KeyBigEndian = [8]byte{'b', 'i', 'n', 'a', 'r', 'y', 'b', 0}
+
 type Encoding struct {
 	endian binary.ByteOrder
 }
@@ -23,9 +26,9 @@ func New(config Config) *Encoding {
 func (b *Encoding) GetKey() [8]byte {
 	var endianType byte
 	if b.endian == binary.LittleEndian {
-		endianType = 'l'
+		return KeyLittleEndian
 	} else if b.endian == binary.BigEndian {
-		endianType = 'b'
+		return KeyBigEndian
 	}
 	return [8]byte{'b', 'i', 'n', 'a', 'r', 'y', endianType, 0}
 }
@@ -51,6 +54,3 @@ func (b *Encoding) Decode(encoded []byte, out interface{}) error {
 func (b *Encoding) DecodeReader(reader io.Reader, out interface{}) error {
 	return binary.Read(reader, b.endian, out)
 }
-
-
-

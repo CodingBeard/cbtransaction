@@ -2,11 +2,13 @@ package cbnone
 
 import "io"
 
+var Key = [8]byte{'n', 'o', 'n', 'e', 0, 0, 0, 0}
+
 type Encryption struct {
 }
 
 func (n *Encryption) GetKey() [8]byte {
-	return [8]byte{'n', 'o', 'n', 'e', 0, 0, 0, 0}
+	return Key
 }
 
 func (n *Encryption) Encrypt(data []byte) []byte {

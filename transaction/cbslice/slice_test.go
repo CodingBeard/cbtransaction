@@ -5,43 +5,84 @@ import (
 	"encoding/binary"
 	"errors"
 	"github.com/codingbeard/cbtransaction"
+	"github.com/google/uuid"
 	"io/ioutil"
-	"math/rand"
 	"os"
 	"reflect"
 	"testing"
 )
 
 func TestNew(t *testing.T) {
-	slice := New()
+	slice := NewVersion1()
 	_ = slice
 }
 
+func TestTransaction_SetVersion(t *testing.T) {
+	slice := NewVersion1()
+	version := Version1
+	slice.SetVersion(version)
+}
+
+func TestTransaction_GetVersion(t *testing.T) {
+	slice := NewVersion1()
+	version := Version1
+	slice.SetVersion(version)
+	get := slice.GetVersion()
+	if get != version {
+		t.Errorf("version was incorrect, got: %d, want: %d", get, version)
+	}
+}
+
 func TestTransaction_SetTransactionId(t *testing.T) {
-	slice := New()
-	transactionId := rand.Uint64()
+	slice := NewVersion1()
+
+	transactionId, e := uuid.NewUUID()
+	if e != nil {
+		t.Error(e)
+	}
 	slice.SetTransactionId(transactionId)
 }
 
 func TestTransaction_GetTransactionId(t *testing.T) {
-	slice := New()
-	transactionId := rand.Uint64()
+	slice := NewVersion1()
+
+	transactionId, e := uuid.NewUUID()
+	if e != nil {
+		t.Error(e)
+	}
 	slice.SetTransactionId(transactionId)
 	get := slice.GetTransactionId()
-	if get != transactionId {
-		t.Errorf("transactionId was incorrect, got: %d, want: %d", get, transactionId)
+	if get.String() != transactionId.String() {
+		t.Errorf("transactionId was incorrect, got: %s, want: %s", get.String(), transactionId.String())
+	}
+}
+
+func TestTransaction_GetTime(t *testing.T) {
+	slice := NewVersion1()
+
+	transactionId, e := uuid.NewUUID()
+	if e != nil {
+		t.Error(e)
+	}
+	slice.SetTransactionId(transactionId)
+	get := slice.GetTime()
+	unix, _ := transactionId.Time().UnixTime()
+	if get.Unix() != unix {
+		t.Errorf("transactionId was incorrect, got: %d, want: %d", get.Unix(), unix)
 	}
 }
 
 func TestTransaction_SetActionEnum(t *testing.T) {
-	slice := New()
+	slice := NewVersion1()
+
 	slice.SetActionEnum(cbtransaction.ActionAdd)
 	slice.SetActionEnum(cbtransaction.ActionRemove)
 	slice.SetActionEnum(cbtransaction.ActionClear)
 }
 
 func TestTransaction_GetActionEnum(t *testing.T) {
-	slice := New()
+	slice := NewVersion1()
+
 	slice.SetActionEnum(cbtransaction.ActionAdd)
 	get := slice.GetActionEnum()
 	if get != cbtransaction.ActionAdd {
@@ -60,12 +101,14 @@ func TestTransaction_GetActionEnum(t *testing.T) {
 }
 
 func TestTransaction_SetEncodingProviderKey(t *testing.T) {
-	slice := New()
+	slice := NewVersion1()
+
 	slice.SetEncodingProviderKey([8]byte{'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'})
 }
 
 func TestTransaction_GetEncodingProviderKey(t *testing.T) {
-	slice := New()
+	slice := NewVersion1()
+
 	byteArray := [8]byte{'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'}
 	slice.SetEncodingProviderKey(byteArray)
 	get := slice.GetEncodingProviderKey()
@@ -77,12 +120,14 @@ func TestTransaction_GetEncodingProviderKey(t *testing.T) {
 }
 
 func TestTransaction_SetEncryptionProviderKey(t *testing.T) {
-	slice := New()
+	slice := NewVersion1()
+
 	slice.SetEncryptionProviderKey([8]byte{'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'})
 }
 
 func TestTransaction_GetEncryptionProviderKey(t *testing.T) {
-	slice := New()
+	slice := NewVersion1()
+
 	byteArray := [8]byte{'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'}
 	slice.SetEncryptionProviderKey(byteArray)
 	get := slice.GetEncryptionProviderKey()
@@ -94,12 +139,14 @@ func TestTransaction_GetEncryptionProviderKey(t *testing.T) {
 }
 
 func TestTransaction_SetData(t *testing.T) {
-	slice := New()
+	slice := NewVersion1()
+
 	slice.SetData([]byte("qwerty"))
 }
 
 func TestTransaction_GetData(t *testing.T) {
-	slice := New()
+	slice := NewVersion1()
+
 	data := []byte("qwerty")
 	slice.SetData(data)
 	get := slice.GetData()
@@ -109,10 +156,11 @@ func TestTransaction_GetData(t *testing.T) {
 }
 
 func TestTransaction_Serialise(t *testing.T) {
-	slice := New()
+	slice := NewVersion1()
+
 	t.Logf("new           %b %d", slice, len(*slice))
 
-	transactionId := uint64(0)
+	transactionId := uuid.New()
 	slice.SetTransactionId(transactionId)
 	t.Logf("transactionId %b %d", slice, len(*slice))
 
@@ -132,8 +180,12 @@ func TestTransaction_Serialise(t *testing.T) {
 	t.Logf("data          %b %d", slice, len(*slice))
 
 	expected := []byte{
-		28, 0, 0, 0, 0, 0, 0, 0, //len(transaction)
-		0, 0, 0, 0, 0, 0, 0, 0, //transactionId
+		37, 0, 0, 0, 0, 0, 0, 0, //len(transaction)
+		byte(Version1),                                                         //Version1
+		transactionId[0], transactionId[1], transactionId[2], transactionId[3], //UUID
+		transactionId[4], transactionId[5], transactionId[6], transactionId[7], //UUID
+		transactionId[8], transactionId[9], transactionId[10], transactionId[11], //UUID
+		transactionId[12], transactionId[13], transactionId[14], transactionId[15], //UUID
 		43,                     //ActionAdd
 		0, 1, 2, 3, 4, 5, 6, 7, //encodingProviderKey
 		8, 9, 10, 11, 12, 13, 14, 15, //encryptionProviderKey
@@ -146,10 +198,62 @@ func TestTransaction_Serialise(t *testing.T) {
 	}
 }
 
+func TestTransaction_SerialiseWriter(t *testing.T) {
+	slice := NewVersion1()
+
+	t.Logf("new           %b %d", slice, len(*slice))
+
+	transactionId := uuid.New()
+	slice.SetTransactionId(transactionId)
+	t.Logf("transactionId %b %d", slice, len(*slice))
+
+	slice.SetActionEnum(cbtransaction.ActionAdd)
+	t.Logf("action        %b %d", slice, len(*slice))
+
+	encodingProviderKey := [8]byte{0, 1, 2, 3, 4, 5, 6, 7}
+	slice.SetEncodingProviderKey(encodingProviderKey)
+	t.Logf("encoding      %b %d", slice, len(*slice))
+
+	encryptionProviderKey := [8]byte{8, 9, 10, 11, 12, 13, 14, 15}
+	slice.SetEncryptionProviderKey(encryptionProviderKey)
+	t.Logf("encryption    %b %d", slice, len(*slice))
+
+	data := []byte{16, 17, 18}
+	slice.SetData(data)
+	t.Logf("data          %b %d", slice, len(*slice))
+
+	expected := []byte{
+		37, 0, 0, 0, 0, 0, 0, 0, //len(transaction)
+		byte(Version1),                                                         //Version1
+		transactionId[0], transactionId[1], transactionId[2], transactionId[3], //UUID
+		transactionId[4], transactionId[5], transactionId[6], transactionId[7], //UUID
+		transactionId[8], transactionId[9], transactionId[10], transactionId[11], //UUID
+		transactionId[12], transactionId[13], transactionId[14], transactionId[15], //UUID
+		43,                     //ActionAdd
+		0, 1, 2, 3, 4, 5, 6, 7, //encodingProviderKey
+		8, 9, 10, 11, 12, 13, 14, 15, //encryptionProviderKey
+		16, 17, 18, //data
+	}
+
+	writer := bytes.NewBuffer([]byte{})
+
+	n, e := slice.SerialiseWriter(writer)
+	if e != nil {
+		t.Errorf("e was incorrect, got : %v, want: nil", e)
+	}
+	if n != 37+8 {
+		t.Errorf("n was incorrect, got : %d, want: 37", n)
+	}
+	if bytes.Compare(expected, writer.Bytes()) != 0 {
+		t.Errorf("serialised was incorrect, \ngot : %v, \nwant: %v", writer.Bytes(), expected)
+	}
+}
+
 func TestNewFromReader(t *testing.T) {
 	reader := bytes.NewReader([]byte{
-		28, 0, 0, 0, 0, 0, 0, 0, //len(transaction)
-		0, 0, 0, 0, 0, 0, 0, 0, //transactionId
+		37, 0, 0, 0, 0, 0, 0, 0, //len(transaction)
+		byte(Version1),                                 //Version1
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, //UUID
 		43,                     //ActionAdd
 		0, 1, 2, 3, 4, 5, 6, 7, //encodingProviderKey
 		8, 9, 10, 11, 12, 13, 14, 15, //encryptionProviderKey
@@ -164,8 +268,9 @@ func TestNewFromReader(t *testing.T) {
 	}
 
 	reader = bytes.NewReader([]byte{
-		28, 0, 0, 0, 0, 0, 0, 0, //len(transaction)
-		0, 0, 0, 0, 0, 0, 0, 0, //transactionId
+		37, 0, 0, 0, 0, 0, 0, 0, //len(transaction)
+		byte(Version1),                                 //Version1
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, //UUID
 		43,                     //ActionAdd
 		0, 1, 2, 3, 4, 5, 6, 7, //encodingProviderKey
 		8, 9, 10, 11, 12, 13, 14, 15, //encryptionProviderKey
@@ -180,10 +285,10 @@ func TestNewFromReader(t *testing.T) {
 		return
 	}
 
-	expectedTransactionId := uint64(0)
+	expectedTransactionId := uuid.UUID{}
 	getTransactionId := slice.GetTransactionId()
-	if getTransactionId != expectedTransactionId {
-		t.Errorf("getTransactionId was incorrect, got: %d, want: %d", getTransactionId, expectedTransactionId)
+	if getTransactionId.String() != expectedTransactionId.String() {
+		t.Errorf("getTransactionId was incorrect, got: %s, want: %s", getTransactionId.String(), expectedTransactionId.String())
 	}
 
 	expectedActionEnum := cbtransaction.ActionAdd
@@ -204,7 +309,7 @@ func TestNewFromReader(t *testing.T) {
 		t.Errorf("getEncryptionProviderKey was incorrect, got: %v, want: %v", getEncryptionProviderKey, expectedEncryptionProviderKey)
 	}
 
-	expectedLength := uint64(28)
+	expectedLength := uint64(37)
 	getLength := slice.GetLength()
 	if getLength != expectedLength {
 		t.Errorf("getLength was incorrect, got: %d, want: %d", getLength, expectedLength)
@@ -219,14 +324,16 @@ func TestNewFromReader(t *testing.T) {
 
 func BenchmarkNew(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		_ = New()
+		_ = NewVersion1()
 	}
 }
 
 func BenchmarkTransaction_Serialise1KB(b *testing.B) {
 	b.StopTimer()
 	transactionBytes := []byte{
-		0, 0, 0, 0, 0, 0, 0, 0, //transactionId
+		37, 0, 0, 0, 0, 0, 0, 0, //len(transaction)
+		byte(Version1),                                 //Version1
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, //UUID
 		43,                     //ActionAdd
 		0, 1, 2, 3, 4, 5, 6, 7, //encodingProviderKey
 		8, 9, 10, 11, 12, 13, 14, 15, //encryptionProviderKey
@@ -250,6 +357,43 @@ func BenchmarkTransaction_Serialise1KB(b *testing.B) {
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
 		_ = slice.Serialise()
+	}
+}
+
+func BenchmarkTransaction_SerialiseWriter1KB(b *testing.B) {
+	b.StopTimer()
+	transactionBytes := []byte{
+		37, 0, 0, 0, 0, 0, 0, 0, //len(transaction)
+		byte(Version1),                                 //Version1
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, //UUID
+		43,                     //ActionAdd
+		0, 1, 2, 3, 4, 5, 6, 7, //encodingProviderKey
+		8, 9, 10, 11, 12, 13, 14, 15, //encryptionProviderKey
+	}
+	var data []byte
+	for i := 0; i < 1024; i++ {
+		data = append(data, 10)
+	}
+	size := make([]byte, 8)
+	binary.LittleEndian.PutUint64(size, uint64(len(data)))
+
+	transactionBytes = append(size, append(transactionBytes, data...)...)
+
+	reader := bytes.NewReader(transactionBytes)
+	slice, e := NewFromReader(reader)
+	if e != nil {
+		b.Error(e)
+		return
+	}
+	writer := bytes.NewBuffer([]byte{})
+	for i := 0; i < b.N; i++ {
+		b.StartTimer()
+		_, e = slice.SerialiseWriter(writer)
+		b.StopTimer()
+		if e != nil {
+			b.Error(e)
+		}
+		writer.Reset()
 	}
 }
 
@@ -287,7 +431,9 @@ func BenchmarkTransaction_Serialise1KB(b *testing.B) {
 func BenchmarkNewFromReader1KBMemory(b *testing.B) {
 	b.StopTimer()
 	transactionBytes := []byte{
-		0, 0, 0, 0, 0, 0, 0, 0, //transactionId
+		37, 0, 0, 0, 0, 0, 0, 0, //len(transaction)
+		byte(Version1),                                 //Version1
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, //UUID
 		43,                     //ActionAdd
 		0, 1, 2, 3, 4, 5, 6, 7, //encodingProviderKey
 		8, 9, 10, 11, 12, 13, 14, 15, //encryptionProviderKey
@@ -319,7 +465,9 @@ func BenchmarkNewFromReader1KBMemory(b *testing.B) {
 func BenchmarkAcquireTransactionUnserialiseReader1KBMemory(b *testing.B) {
 	b.StopTimer()
 	transactionBytes := []byte{
-		0, 0, 0, 0, 0, 0, 0, 0, //transactionId
+		37, 0, 0, 0, 0, 0, 0, 0, //len(transaction)
+		byte(Version1),                                 //Version1
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, //UUID
 		43,                     //ActionAdd
 		0, 1, 2, 3, 4, 5, 6, 7, //encodingProviderKey
 		8, 9, 10, 11, 12, 13, 14, 15, //encryptionProviderKey
@@ -351,7 +499,9 @@ func BenchmarkAcquireTransactionUnserialiseReader1KBMemory(b *testing.B) {
 func BenchmarkNewFromReader1KBFile(b *testing.B) {
 	b.StopTimer()
 	transactionBytes := []byte{
-		0, 0, 0, 0, 0, 0, 0, 0, //transactionId
+		37, 0, 0, 0, 0, 0, 0, 0, //len(transaction)
+		byte(Version1),                                 //Version1
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, //UUID
 		43,                     //ActionAdd
 		0, 1, 2, 3, 4, 5, 6, 7, //encodingProviderKey
 		8, 9, 10, 11, 12, 13, 14, 15, //encryptionProviderKey
@@ -392,7 +542,9 @@ func BenchmarkNewFromReader1KBFile(b *testing.B) {
 func BenchmarkAcquireTransactionUnserialiseReader1KBFile(b *testing.B) {
 	b.StopTimer()
 	transactionBytes := []byte{
-		0, 0, 0, 0, 0, 0, 0, 0, //transactionId
+		37, 0, 0, 0, 0, 0, 0, 0, //len(transaction)
+		byte(Version1),                                 //Version1
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, //UUID
 		43,                     //ActionAdd
 		0, 1, 2, 3, 4, 5, 6, 7, //encodingProviderKey
 		8, 9, 10, 11, 12, 13, 14, 15, //encryptionProviderKey
