@@ -1,20 +1,21 @@
 package cbtransaction
 
 import (
+	"github.com/google/uuid"
 	"io"
 )
 
 type ActionEnum byte
 
 var (
-	ActionAdd ActionEnum = '+'
+	ActionAdd    ActionEnum = '+'
 	ActionRemove ActionEnum = '-'
-	ActionClear ActionEnum = '*'
+	ActionClear  ActionEnum = '*'
 )
 
 type Transaction interface {
-	SetTransactionId(transactionId uint64)
-	GetTransactionId() uint64
+	SetTransactionId(transactionId uuid.UUID)
+	GetTransactionId() uuid.UUID
 	SetActionEnum(action ActionEnum)
 	GetActionEnum() ActionEnum
 	SetEncodingProviderKey(key [8]byte)

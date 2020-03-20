@@ -44,7 +44,7 @@ func TestEncoding_Decode(t *testing.T) {
 	}{
 		{
 			"int64",
-			args{encoded: []byte{211, 0, 0, 0, 0, 0, 0, 4,210}},
+			args{encoded: []byte{211, 0, 0, 0, 0, 0, 0, 4, 210}},
 			1234,
 			false,
 			0,
@@ -79,7 +79,7 @@ func TestEncoding_DecodeReader(t *testing.T) {
 		{
 			"int64",
 			args{
-				reader: bytes.NewReader([]byte{211, 0, 0, 0, 0, 0, 0, 4,210}),
+				reader: bytes.NewReader([]byte{211, 0, 0, 0, 0, 0, 0, 4, 210}),
 				out:    0,
 			},
 			1234,
@@ -114,7 +114,7 @@ func TestEncoding_Encode(t *testing.T) {
 		{
 			"int64",
 			args{data: 1234},
-			[]byte{211, 0, 0, 0, 0, 0, 0, 4,210},
+			[]byte{211, 0, 0, 0, 0, 0, 0, 4, 210},
 			false,
 		},
 	}
@@ -146,7 +146,7 @@ func TestEncoding_EncodeWriter(t *testing.T) {
 		{
 			"int64",
 			args{data: 1234},
-			[]byte{211, 0, 0, 0, 0, 0, 0, 4,210},
+			[]byte{211, 0, 0, 0, 0, 0, 0, 4, 210},
 			false,
 		},
 	}
