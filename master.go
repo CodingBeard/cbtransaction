@@ -1,7 +1,6 @@
 package cbtransaction
 
 import (
-	"io"
 	"sync"
 )
 
@@ -10,19 +9,19 @@ type Master struct {
 
 	// used internally / not persisted
 	lock          *sync.RWMutex
-	file          io.ReadWriteSeeker
+	file          ReadWriteSeekCloser
 	buckets       []*Bucket
 	currentBucket *Bucket
 }
 
-func NewMasterFromFile(file io.ReadWriteSeeker) (*Master, error) {
+func NewMasterFromFile(file ReadWriteSeekCloser) (*Master, error) {
 	return &Master{
 		lock: &sync.RWMutex{},
 		file: file,
 	}, nil
 }
 
-func (m *Master) GetFile() io.ReadWriteSeeker {
+func (m *Master) GetFile() ReadWriteSeekCloser {
 	return m.file
 }
 

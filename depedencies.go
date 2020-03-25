@@ -4,10 +4,16 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"runtime"
 	"strings"
 )
+
+type ReadWriteSeekCloser interface {
+	io.ReadWriteSeeker
+	io.Closer
+}
 
 type ErrorHandler interface {
 	Error(e error)

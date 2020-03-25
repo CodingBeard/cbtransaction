@@ -1,31 +1,31 @@
 package cbtransaction
 
 import (
-	"io"
 	"sync"
 )
 
 type Bucket struct {
-	FileName        string
-	Hash            string
-	CompressedHash  string
-	CompressionAlgo string
-	ModTime         int64
-	Version         uint32
+	FileName         string
+	Hash             string
+	CompressedHash   string
+	CompressionAlgo  string
+	ModTime          int64
+	Version          uint32
+	TransactionCount uint32
 
 	// used internally / not persisted
 	lock *sync.RWMutex
-	file io.ReadWriteSeeker
+	file ReadWriteSeekCloser
 }
 
-func NewBucketFromFile(file io.ReadWriteSeeker) (*Bucket, error) {
+func NewBucketFromFile(file ReadWriteSeekCloser) (*Bucket, error) {
 	return &Bucket{
 		lock: &sync.RWMutex{},
 		file: file,
 	}, nil
 }
 
-func (b *Bucket) GetFile() io.ReadWriteSeeker {
+func (b *Bucket) GetFile() ReadWriteSeekCloser {
 	return b.file
 }
 
@@ -83,4 +83,12 @@ func (b *Bucket) GetVersion() uint32 {
 
 func (b *Bucket) SetVersion(version uint32) {
 	b.Version = version
+}
+
+func (b *Bucket) GetTransactionCount() uint32 {
+	return b.TransactionCount
+}
+
+func (b *Bucket) SetTransactionCount(transactionCount uint32) {
+	b.TransactionCount = transactionCount
 }

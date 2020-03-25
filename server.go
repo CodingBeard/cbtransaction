@@ -2,11 +2,14 @@ package cbtransaction
 
 import (
 	"errors"
+	"fmt"
 	"github.com/codingbeard/cbtransaction/transaction/cbslice"
 	"github.com/codingbeard/cbutil"
 	"github.com/google/uuid"
+	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -110,7 +113,7 @@ func (s *Server) Run() error {
 	}
 
 	cbutil.RepeatingTask{
-		Sleep:      time.Millisecond * 100,
+		Sleep:      time.Second,
 		SleepFirst: true,
 		Run:        s.insertTransactionsQueue,
 	}.Start()
@@ -152,21 +155,20 @@ func (s *Server) insertTransactionsQueue() {
 
 	s.transactionQueueLock.Unlock()
 
-	s.globalLock.Lock()
-	defer s.globalLock.Unlock()
-
 	currentBucket := s.master.GetCurrentBucket()
 
-	newBucket, e := s.duplicateBucket(currentBucket)
+	tempBucket, e := s.createTempBucketClone(currentBucket)
 	if e != nil {
-		s.errorHandler.Error(e)
-
 		s.transactionQueueLock.Lock()
 		s.transactionInsertQueue = append(insertItems, s.transactionInsertQueue...)
 		s.transactionQueueLock.Unlock()
 
 		return
 	}
+	if tempBucket.GetFile() != nil {
+		defer tempBucket.GetFile().Close()
+	}
+	tempBucket.Lock()
 
 	for _, item := range insertItems {
 		transaction := cbslice.NewVersion1()
@@ -177,7 +179,7 @@ func (s *Server) insertTransactionsQueue() {
 			s.transactionQueueLock.Lock()
 			s.transactionInsertQueue = append(insertItems, s.transactionInsertQueue...)
 			s.transactionQueueLock.Unlock()
-			// todo remove duplicated bucket
+			_ = s.removeBucket(tempBucket)
 			return
 		}
 		transaction.SetTransactionId(transactionId)
@@ -191,40 +193,147 @@ func (s *Server) insertTransactionsQueue() {
 			s.transactionQueueLock.Lock()
 			s.transactionInsertQueue = append(insertItems, s.transactionInsertQueue...)
 			s.transactionQueueLock.Unlock()
-			// todo remove duplicated bucket
+			_ = s.removeBucket(tempBucket)
 			return
 		}
 		transaction.SetData(s.defaultEncryptionProvider.Encrypt(encoded))
-		_, e = transaction.SerialiseWriter(newBucket.GetFile())
+		_, e = transaction.SerialiseWriter(tempBucket.GetFile())
 		if e != nil {
 			s.errorHandler.Error(e)
 
 			s.transactionQueueLock.Lock()
 			s.transactionInsertQueue = append(insertItems, s.transactionInsertQueue...)
 			s.transactionQueueLock.Unlock()
-			// todo remove duplicated bucket
+			_ = s.removeBucket(tempBucket)
 			return
 		}
 	}
 
-	e = s.replaceBucket(currentBucket, newBucket)
+	tempBucket.Unlock()
+
+	verifiedBucket, e := s.verifyBucket(tempBucket)
 	if e != nil {
-		s.errorHandler.Error(e)
+		s.transactionQueueLock.Lock()
+		s.transactionInsertQueue = append(insertItems, s.transactionInsertQueue...)
+		s.transactionQueueLock.Unlock()
+		_ = s.removeBucket(tempBucket)
+		return
+	}
+
+	if verifiedBucket.GetTransactionCount() != currentBucket.GetTransactionCount()+uint32(len(insertItems)) {
+		s.errorHandler.Error(errors.New("transaction count of new bucket did not equal old count plus new items"))
 
 		s.transactionQueueLock.Lock()
 		s.transactionInsertQueue = append(insertItems, s.transactionInsertQueue...)
 		s.transactionQueueLock.Unlock()
-		// todo remove duplicated bucket
+		_ = s.removeBucket(tempBucket)
 		return
 	}
+
+	s.globalLock.Lock()
+	defer s.globalLock.Unlock()
+
+	currentBucket, e = s.replaceBucket(currentBucket, verifiedBucket)
+	if e != nil {
+		s.transactionQueueLock.Lock()
+		s.transactionInsertQueue = append(insertItems, s.transactionInsertQueue...)
+		s.transactionQueueLock.Unlock()
+		_ = s.removeBucket(tempBucket)
+		return
+	}
+
+	if verifiedBucket.GetFile() != nil {
+		_ = verifiedBucket.GetFile().Close()
+	}
+
+	s.master.currentBucket = currentBucket
 }
 
-func (s *Server) duplicateBucket(bucket *Bucket) (*Bucket, error) {
+func (s *Server) createTempBucketClone(bucket *Bucket) (*Bucket, error) {
+	tempFileName := bucket.GetFileName() + ".temp." + strconv.FormatInt(time.Now().UnixNano(), 10)
+	tempFile, e := os.Create(filepath.Join(
+		s.dataDir,
+		tempFileName,
+	))
+	if e != nil {
+		s.errorHandler.Error(e)
+		return nil, e
+	}
+
+	bucket.Lock()
+	defer bucket.Unlock()
+	_, e = io.Copy(tempFile, bucket.GetFile())
+	if e != nil {
+		s.errorHandler.Error(e)
+		return nil, e
+	}
+
+	tempBucket, e := NewBucketFromFile(tempFile)
+	if e != nil {
+		s.errorHandler.Error(e)
+		return nil, e
+	}
+
+	tempBucket.SetVersion(bucket.GetVersion() + 1)
+	tempBucket.SetFileName(tempFileName)
+	tempBucket.SetModTime(time.Now().Unix())
+	tempBucket.SetTransactionCount(bucket.GetTransactionCount())
+
+	return tempBucket, nil
+}
+
+func (s *Server) removeBucket(bucket *Bucket) error {
+	bucket.Lock()
+	defer bucket.Unlock()
+	return os.Remove(filepath.Join(s.dataDir, bucket.GetFileName()))
+}
+
+func (s *Server) verifyBucket(bucket *Bucket) (*Bucket, error) {
+	bucket.Lock()
+	defer bucket.Unlock()
+
+	_, e := bucket.GetFile().Seek(0, io.SeekStart)
+	if e != nil {
+		s.errorHandler.Error(e)
+		return nil, e
+	}
+
+	transactionCount := uint32(0)
+
+	for true {
+		oldPosition, posE := bucket.GetFile().Seek(0, io.SeekCurrent)
+		if posE != nil {
+			s.errorHandler.Error(posE)
+			return nil, posE
+		}
+
+		_, e := cbslice.NewFromReader(bucket.GetFile())
+
+		newPosition, posE := bucket.GetFile().Seek(0, io.SeekCurrent)
+		if posE != nil {
+			s.errorHandler.Error(posE)
+			return nil, posE
+		}
+
+		if e != nil {
+			if oldPosition != newPosition {
+				err := fmt.Errorf("invalid transaction bucket: %s. %s", bucket.GetFileName(), e.Error())
+				s.errorHandler.Error(err)
+				return nil, err
+			}
+			break
+		}
+
+		transactionCount++
+	}
+
+	bucket.SetTransactionCount(transactionCount)
+
+	return bucket, nil
+}
+
+func (s *Server) replaceBucket(bucket *Bucket, newBucket *Bucket) (*Bucket, error) {
 	return nil, nil
-}
-
-func (s *Server) replaceBucket(bucket *Bucket, newBucket *Bucket) error {
-	return nil
 }
 
 func (s *Server) negateExpiredTransactions() {
