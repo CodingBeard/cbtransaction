@@ -1,4 +1,4 @@
-package cbbinary
+package cbmsgpack
 
 import (
 	"bytes"

@@ -1,23 +1,16 @@
 package cbtransaction
 
 import (
+	"github.com/codingbeard/cbtransaction/transaction"
 	"github.com/google/uuid"
 	"io"
-)
-
-type ActionEnum byte
-
-var (
-	ActionAdd    ActionEnum = '+'
-	ActionRemove ActionEnum = '-'
-	ActionClear  ActionEnum = '*'
 )
 
 type Transaction interface {
 	SetTransactionId(transactionId uuid.UUID)
 	GetTransactionId() uuid.UUID
-	SetActionEnum(action ActionEnum)
-	GetActionEnum() ActionEnum
+	SetActionEnum(action transaction.ActionEnum)
+	GetActionEnum() transaction.ActionEnum
 	SetEncodingProviderKey(key [8]byte)
 	GetEncodingProviderKey() [8]byte
 	SetEncryptionProviderKey(key [8]byte)
@@ -29,16 +22,4 @@ type Transaction interface {
 	UnserialiseReader(reader io.Reader) error
 	Serialise() []byte
 	SerialiseWriter(writer io.Writer) (n int, err error)
-}
-
-func (e *ActionEnum) IsAdd() bool {
-	return *e == ActionAdd
-}
-
-func (e *ActionEnum) IsRemove() bool {
-	return *e == ActionRemove
-}
-
-func (e *ActionEnum) IsClear() bool {
-	return *e == ActionClear
 }

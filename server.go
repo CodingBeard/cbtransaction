@@ -3,6 +3,7 @@ package cbtransaction
 import (
 	"errors"
 	"fmt"
+	"github.com/codingbeard/cbtransaction/transaction"
 	"github.com/codingbeard/cbtransaction/transaction/cbslice"
 	"github.com/codingbeard/cbutil"
 	"github.com/google/uuid"
@@ -20,7 +21,7 @@ var (
 )
 
 type transactionInsertQueueItem struct {
-	action ActionEnum
+	action transaction.ActionEnum
 	data   interface{}
 }
 
@@ -133,7 +134,7 @@ func (s *Server) Run() error {
 	select {}
 }
 
-func (s *Server) AddTransaction(action ActionEnum, data interface{}) {
+func (s *Server) AddTransaction(action transaction.ActionEnum, data interface{}) {
 	s.transactionQueueLock.Lock()
 	defer s.transactionQueueLock.Unlock()
 	s.transactionInsertQueue = append(

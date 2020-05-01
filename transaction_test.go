@@ -1,9 +1,12 @@
 package cbtransaction
 
-import "testing"
+import (
+	"github.com/codingbeard/cbtransaction/transaction"
+	"testing"
+)
 
 func TestActionEnum_IsAdd(t *testing.T) {
-	action := ActionAdd
+	action := transaction.ActionAdd
 
 	if !action.IsAdd() {
 		t.Error("IsAdd is incorrect, got: false, want: true")
@@ -17,7 +20,7 @@ func TestActionEnum_IsAdd(t *testing.T) {
 }
 
 func TestActionEnum_IsRemove(t *testing.T) {
-	action := ActionRemove
+	action := transaction.ActionRemove
 
 	if action.IsAdd() {
 		t.Error("IsAdd is incorrect, got: true, want: false")
@@ -31,7 +34,7 @@ func TestActionEnum_IsRemove(t *testing.T) {
 }
 
 func TestActionEnum_IsClear(t *testing.T) {
-	action := ActionClear
+	action := transaction.ActionClear
 
 	if action.IsAdd() {
 		t.Error("IsAdd is incorrect, got: true, want: false")

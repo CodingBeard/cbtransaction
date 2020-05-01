@@ -1,4 +1,4 @@
-package cbbinary
+package cbmsgpack
 
 import (
 	"github.com/vmihailenco/msgpack"
@@ -13,7 +13,7 @@ type Encoding struct {
 type Config struct {
 }
 
-func New(config Config) *Encoding {
+func New() *Encoding {
 	return &Encoding{}
 }
 

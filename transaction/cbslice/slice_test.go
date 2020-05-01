@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
-	"github.com/codingbeard/cbtransaction"
+	"github.com/codingbeard/cbtransaction/transaction"
 	"github.com/google/uuid"
 	"io/ioutil"
 	"os"
@@ -75,28 +75,28 @@ func TestTransaction_GetTime(t *testing.T) {
 func TestTransaction_SetActionEnum(t *testing.T) {
 	slice := NewVersion1()
 
-	slice.SetActionEnum(cbtransaction.ActionAdd)
-	slice.SetActionEnum(cbtransaction.ActionRemove)
-	slice.SetActionEnum(cbtransaction.ActionClear)
+	slice.SetActionEnum(transaction.ActionAdd)
+	slice.SetActionEnum(transaction.ActionRemove)
+	slice.SetActionEnum(transaction.ActionClear)
 }
 
 func TestTransaction_GetActionEnum(t *testing.T) {
 	slice := NewVersion1()
 
-	slice.SetActionEnum(cbtransaction.ActionAdd)
+	slice.SetActionEnum(transaction.ActionAdd)
 	get := slice.GetActionEnum()
-	if get != cbtransaction.ActionAdd {
-		t.Errorf("actionEnum was incorrect, got: %s, want: %s", string(get), string(cbtransaction.ActionAdd))
+	if get != transaction.ActionAdd {
+		t.Errorf("actionEnum was incorrect, got: %s, want: %s", string(get), string(transaction.ActionAdd))
 	}
-	slice.SetActionEnum(cbtransaction.ActionRemove)
+	slice.SetActionEnum(transaction.ActionRemove)
 	get = slice.GetActionEnum()
-	if get != cbtransaction.ActionRemove {
-		t.Errorf("actionEnum was incorrect, got: %s, want: %s", string(get), string(cbtransaction.ActionRemove))
+	if get != transaction.ActionRemove {
+		t.Errorf("actionEnum was incorrect, got: %s, want: %s", string(get), string(transaction.ActionRemove))
 	}
-	slice.SetActionEnum(cbtransaction.ActionClear)
+	slice.SetActionEnum(transaction.ActionClear)
 	get = slice.GetActionEnum()
-	if get != cbtransaction.ActionClear {
-		t.Errorf("actionEnum was incorrect, got: %s, want: %s", string(get), string(cbtransaction.ActionClear))
+	if get != transaction.ActionClear {
+		t.Errorf("actionEnum was incorrect, got: %s, want: %s", string(get), string(transaction.ActionClear))
 	}
 }
 
@@ -164,7 +164,7 @@ func TestTransaction_Serialise(t *testing.T) {
 	slice.SetTransactionId(transactionId)
 	t.Logf("transactionId %b %d", slice, len(*slice))
 
-	slice.SetActionEnum(cbtransaction.ActionAdd)
+	slice.SetActionEnum(transaction.ActionAdd)
 	t.Logf("action        %b %d", slice, len(*slice))
 
 	encodingProviderKey := [8]byte{0, 1, 2, 3, 4, 5, 6, 7}
@@ -207,7 +207,7 @@ func TestTransaction_SerialiseWriter(t *testing.T) {
 	slice.SetTransactionId(transactionId)
 	t.Logf("transactionId %b %d", slice, len(*slice))
 
-	slice.SetActionEnum(cbtransaction.ActionAdd)
+	slice.SetActionEnum(transaction.ActionAdd)
 	t.Logf("action        %b %d", slice, len(*slice))
 
 	encodingProviderKey := [8]byte{0, 1, 2, 3, 4, 5, 6, 7}
@@ -291,7 +291,7 @@ func TestNewFromReader(t *testing.T) {
 		t.Errorf("getTransactionId was incorrect, got: %s, want: %s", getTransactionId.String(), expectedTransactionId.String())
 	}
 
-	expectedActionEnum := cbtransaction.ActionAdd
+	expectedActionEnum := transaction.ActionAdd
 	getActionEnum := slice.GetActionEnum()
 	if getActionEnum != expectedActionEnum {
 		t.Errorf("getActionEnum was incorrect, got: %s, want: %s", string(getActionEnum), string(expectedActionEnum))

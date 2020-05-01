@@ -3,7 +3,7 @@ package cbslice
 import (
 	"encoding/binary"
 	"errors"
-	"github.com/codingbeard/cbtransaction"
+	"github.com/codingbeard/cbtransaction/transaction"
 	"github.com/google/uuid"
 	"io"
 	"sync"
@@ -38,15 +38,15 @@ type VersionEnum byte
 type Transaction []byte
 
 func AcquireTransactionUnserialise(serialised []byte) *Transaction {
-	transaction := slicePool.Get().(*Transaction)
-	transaction.Unserialise(serialised)
-	return transaction
+	tran := slicePool.Get().(*Transaction)
+	tran.Unserialise(serialised)
+	return tran
 }
 
 func AcquireTransactionUnserialiseReader(reader io.Reader) (*Transaction, error) {
-	transaction := slicePool.Get().(*Transaction)
-	e := transaction.UnserialiseReader(reader)
-	return transaction, e
+	tran := slicePool.Get().(*Transaction)
+	e := tran.UnserialiseReader(reader)
+	return tran, e
 }
 
 func ReleaseTransaction(t *Transaction) {
@@ -54,77 +54,77 @@ func ReleaseTransaction(t *Transaction) {
 }
 
 func NewVersion1() *Transaction {
-	transaction := make(Transaction, headerLength1)
-	transaction[versionOffset] = byte(Version1)
-	return &transaction
+	tran := make(Transaction, headerLength1)
+	tran[versionOffset] = byte(Version1)
+	return &tran
 }
 
 func NewFromReader(serialised io.Reader) (*Transaction, error) {
-	transaction, e := NewUnserialiseReader(serialised)
+	tran, e := NewUnserialiseReader(serialised)
 	if e != nil {
 		return nil, e
 	}
 
-	return transaction, nil
+	return tran, nil
 }
 
 func (b *Transaction) SetVersion(version VersionEnum) {
-	transaction := *b
-	transaction[versionOffset] = byte(version)
-	*b = transaction
+	tran := *b
+	tran[versionOffset] = byte(version)
+	*b = tran
 }
 
 func (b *Transaction) GetVersion() VersionEnum {
-	transaction := *b
-	return VersionEnum(transaction[versionOffset])
+	tran := *b
+	return VersionEnum(tran[versionOffset])
 }
 
 func (b *Transaction) SetTransactionId(transactionId uuid.UUID) {
-	transaction := *b
+	tran := *b
 	var offset int
 	if b.GetVersion() == Version1 {
 		offset = transactionIdOffset1
 	}
-	transaction[offset] = transactionId[0]
-	transaction[offset+1] = transactionId[1]
-	transaction[offset+2] = transactionId[2]
-	transaction[offset+3] = transactionId[3]
-	transaction[offset+4] = transactionId[4]
-	transaction[offset+5] = transactionId[5]
-	transaction[offset+6] = transactionId[6]
-	transaction[offset+7] = transactionId[7]
-	transaction[offset+8] = transactionId[8]
-	transaction[offset+9] = transactionId[9]
-	transaction[offset+10] = transactionId[10]
-	transaction[offset+11] = transactionId[11]
-	transaction[offset+12] = transactionId[12]
-	transaction[offset+13] = transactionId[13]
-	transaction[offset+14] = transactionId[14]
-	transaction[offset+15] = transactionId[15]
-	*b = transaction
+	tran[offset] = transactionId[0]
+	tran[offset+1] = transactionId[1]
+	tran[offset+2] = transactionId[2]
+	tran[offset+3] = transactionId[3]
+	tran[offset+4] = transactionId[4]
+	tran[offset+5] = transactionId[5]
+	tran[offset+6] = transactionId[6]
+	tran[offset+7] = transactionId[7]
+	tran[offset+8] = transactionId[8]
+	tran[offset+9] = transactionId[9]
+	tran[offset+10] = transactionId[10]
+	tran[offset+11] = transactionId[11]
+	tran[offset+12] = transactionId[12]
+	tran[offset+13] = transactionId[13]
+	tran[offset+14] = transactionId[14]
+	tran[offset+15] = transactionId[15]
+	*b = tran
 }
 
 func (b *Transaction) GetTransactionId() uuid.UUID {
 	if b.GetVersion() == Version1 {
-		transaction := *b
+		tran := *b
 
 		transactionId := uuid.UUID{}
-		transactionId[0] = transaction[transactionIdOffset1]
-		transactionId[1] = transaction[transactionIdOffset1+1]
-		transactionId[2] = transaction[transactionIdOffset1+2]
-		transactionId[3] = transaction[transactionIdOffset1+3]
-		transactionId[4] = transaction[transactionIdOffset1+4]
-		transactionId[5] = transaction[transactionIdOffset1+5]
-		transactionId[6] = transaction[transactionIdOffset1+6]
-		transactionId[7] = transaction[transactionIdOffset1+7]
-		transactionId[8] = transaction[transactionIdOffset1+8]
-		transactionId[9] = transaction[transactionIdOffset1+9]
-		transactionId[10] = transaction[transactionIdOffset1+10]
-		transactionId[11] = transaction[transactionIdOffset1+11]
-		transactionId[12] = transaction[transactionIdOffset1+12]
-		transactionId[13] = transaction[transactionIdOffset1+13]
-		transactionId[14] = transaction[transactionIdOffset1+14]
-		transactionId[15] = transaction[transactionIdOffset1+15]
+		transactionId[0] = tran[transactionIdOffset1]
+		transactionId[1] = tran[transactionIdOffset1+1]
+		transactionId[2] = tran[transactionIdOffset1+2]
+		transactionId[3] = tran[transactionIdOffset1+3]
+		transactionId[4] = tran[transactionIdOffset1+4]
+		transactionId[5] = tran[transactionIdOffset1+5]
+		transactionId[6] = tran[transactionIdOffset1+6]
+		transactionId[7] = tran[transactionIdOffset1+7]
+		transactionId[8] = tran[transactionIdOffset1+8]
+		transactionId[9] = tran[transactionIdOffset1+9]
+		transactionId[10] = tran[transactionIdOffset1+10]
+		transactionId[11] = tran[transactionIdOffset1+11]
+		transactionId[12] = tran[transactionIdOffset1+12]
+		transactionId[13] = tran[transactionIdOffset1+13]
+		transactionId[14] = tran[transactionIdOffset1+14]
+		transactionId[15] = tran[transactionIdOffset1+15]
 
 		return transactionId
 	}
@@ -135,21 +135,21 @@ func (b *Transaction) GetTime() time.Time {
 	return time.Unix(b.GetTransactionId().Time().UnixTime())
 }
 
-func (b *Transaction) SetActionEnum(action cbtransaction.ActionEnum) {
+func (b *Transaction) SetActionEnum(action transaction.ActionEnum) {
 	if b.GetVersion() == Version1 {
-		transaction := *b
-		transaction[actionOffset1] = byte(action)
-		*b = transaction
+		tran := *b
+		tran[actionOffset1] = byte(action)
+		*b = tran
 	}
 }
 
-func (b *Transaction) GetActionEnum() cbtransaction.ActionEnum {
+func (b *Transaction) GetActionEnum() transaction.ActionEnum {
 	if b.GetVersion() == Version1 {
-		transaction := *b
-		return cbtransaction.ActionEnum(transaction[actionOffset1])
+		tran := *b
+		return transaction.ActionEnum(tran[actionOffset1])
 	}
 
-	return cbtransaction.ActionEnum(0)
+	return transaction.ActionEnum(0)
 }
 
 func (b *Transaction) SetEncodingProviderKey(key [8]byte) {
@@ -158,9 +158,9 @@ func (b *Transaction) SetEncodingProviderKey(key [8]byte) {
 		encodingOffset = encodingProviderKeyOffset1
 		encryptionOffset = encryptionProviderKeyOffset1
 	}
-	transaction := *b
+	tran := *b
 	prefix := append(
-		transaction[:encodingOffset],
+		tran[:encodingOffset],
 		key[0],
 		key[1],
 		key[2],
@@ -170,8 +170,8 @@ func (b *Transaction) SetEncodingProviderKey(key [8]byte) {
 		key[6],
 		key[7],
 	)
-	transaction = append(prefix, transaction[encryptionOffset:]...)
-	*b = transaction
+	tran = append(prefix, tran[encryptionOffset:]...)
+	*b = tran
 }
 
 func (b *Transaction) GetEncodingProviderKey() [8]byte {
@@ -180,16 +180,16 @@ func (b *Transaction) GetEncodingProviderKey() [8]byte {
 		encodingOffset = encodingProviderKeyOffset1
 		encryptionOffset = encryptionProviderKeyOffset1
 	}
-	transaction := *b
+	tran := *b
 	return [8]byte{
-		transaction[encodingOffset:encryptionOffset][0],
-		transaction[encodingOffset:encryptionOffset][1],
-		transaction[encodingOffset:encryptionOffset][2],
-		transaction[encodingOffset:encryptionOffset][3],
-		transaction[encodingOffset:encryptionOffset][4],
-		transaction[encodingOffset:encryptionOffset][5],
-		transaction[encodingOffset:encryptionOffset][6],
-		transaction[encodingOffset:encryptionOffset][7],
+		tran[encodingOffset:encryptionOffset][0],
+		tran[encodingOffset:encryptionOffset][1],
+		tran[encodingOffset:encryptionOffset][2],
+		tran[encodingOffset:encryptionOffset][3],
+		tran[encodingOffset:encryptionOffset][4],
+		tran[encodingOffset:encryptionOffset][5],
+		tran[encodingOffset:encryptionOffset][6],
+		tran[encodingOffset:encryptionOffset][7],
 	}
 }
 
@@ -199,9 +199,9 @@ func (b *Transaction) SetEncryptionProviderKey(key [8]byte) {
 		encryptionOffset = encryptionProviderKeyOffset1
 		headerLength = headerLength1
 	}
-	transaction := *b
+	tran := *b
 	prefix := append(
-		transaction[:encryptionOffset],
+		tran[:encryptionOffset],
 		key[0],
 		key[1],
 		key[2],
@@ -211,8 +211,8 @@ func (b *Transaction) SetEncryptionProviderKey(key [8]byte) {
 		key[6],
 		key[7],
 	)
-	transaction = append(prefix, transaction[headerLength:]...)
-	*b = transaction
+	tran = append(prefix, tran[headerLength:]...)
+	*b = tran
 }
 
 func (b *Transaction) GetEncryptionProviderKey() [8]byte {
@@ -221,16 +221,16 @@ func (b *Transaction) GetEncryptionProviderKey() [8]byte {
 		encryptionOffset = encryptionProviderKeyOffset1
 		headerLength = headerLength1
 	}
-	transaction := *b
+	tran := *b
 	return [8]byte{
-		transaction[encryptionOffset:headerLength][0],
-		transaction[encryptionOffset:headerLength][1],
-		transaction[encryptionOffset:headerLength][2],
-		transaction[encryptionOffset:headerLength][3],
-		transaction[encryptionOffset:headerLength][4],
-		transaction[encryptionOffset:headerLength][5],
-		transaction[encryptionOffset:headerLength][6],
-		transaction[encryptionOffset:headerLength][7],
+		tran[encryptionOffset:headerLength][0],
+		tran[encryptionOffset:headerLength][1],
+		tran[encryptionOffset:headerLength][2],
+		tran[encryptionOffset:headerLength][3],
+		tran[encryptionOffset:headerLength][4],
+		tran[encryptionOffset:headerLength][5],
+		tran[encryptionOffset:headerLength][6],
+		tran[encryptionOffset:headerLength][7],
 	}
 }
 
@@ -243,16 +243,16 @@ func (b *Transaction) GetData() []byte {
 	if b.GetVersion() == Version1 {
 		headerLength = headerLength1
 	}
-	transaction := *b
-	return transaction[headerLength:]
+	tran := *b
+	return tran[headerLength:]
 }
 
 func (b *Transaction) GetLength() uint64 {
 	return uint64(len(*b))
 }
 
-func (b *Transaction) Unserialise(transaction []byte) {
-	*b = transaction
+func (b *Transaction) Unserialise(tran []byte) {
+	*b = tran
 }
 
 func (b *Transaction) UnserialiseReader(reader io.Reader) error {
